@@ -12,7 +12,7 @@ h1{font-size:28px;background:linear-gradient(90deg,#ff6b6b,#ffa500);-webkit-back
 .subtitle{color:#8899aa;text-align:center;margin-bottom:25px;font-size:14px;border-bottom:1px solid #1a2a40;padding-bottom:15px}
 .badge-auth{display:inline-flex;align-items:center;gap:6px;background:#ff6b6b15;color:#ff6b6b;padding:6px 16px;border-radius:20px;font-size:12px;border:1px solid #ff6b6b30;margin-bottom:20px}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:20px}
-.card-box{background:#0d1525;border-radius:12px;padding:20px;border:1px solid #1a2a40;position:relative}
+.card-box{background:#0d1525;border-radius:12px;padding:20px;border:1px solid #1a2a40}
 .card-box h3{font-size:14px;color:#aabbcc;margin-bottom:12px}
 .input-group{margin-bottom:12px}
 .input-group label{display:block;font-size:13px;color:#8899aa;margin-bottom:4px}
@@ -28,7 +28,6 @@ textarea{resize:vertical}
 .output-box.show{display:block}
 .output-box .valid{color:#00ffc8}
 .output-box .invalid{color:#ff6b6b}
-.output-box .info{color:#556677}
 .stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:15px 0}
 .stat-item{background:#0d1525;border-radius:8px;padding:12px;text-align:center;border:1px solid #1a2a40}
 .stat-item .num{font-size:22px;font-weight:700;color:#00ffc8}
@@ -161,261 +160,166 @@ textarea{resize:vertical}
 // ALGORITM LUHN (ISO/IEC 7812-1)
 // ============================================================
 
-let lastGenerated = [];
+var lastGenerated = [];
 
-function luhnCheck(cardNumber) {
-    var num = cardNumber.replace(/[\s-]/g, '');
-    if (!/^\d+$/.test(num)) return { valid: false, error: 'Karaktè ki pa chif yo' };
-    if (num.length < 13 || num.length > 19) return { valid: false, error: 'Longè envalid (13-19 chif)' };
-
-    var sum = 0, alternate = false;
-    for (var i = num.length - 1; i >= 0; i--) {
-        var digit = parseInt(num[i], 10);
-        if (alternate) { digit *= 2; if (digit > 9) digit -= 9; }
-        sum += digit;
-        alternate = !alternate;
+function luhnCheck(num) {
+    var c = num.replace(/[\s-]/g, '');
+    if (!/^\d+$/.test(c)) return {v:false,e:'Karaktè ki pa chif'};
+    if (c.length<13||c.length>19) return {v:false,e:'Longè envalid (13-19)'};
+    var s=0,a=false;
+    for (var i=c.length-1;i>=0;i--) {
+        var d=parseInt(c[i],10);
+        if (a) {d*=2;if(d>9)d-=9;}
+        s+=d;a=!a;
     }
-    return { valid: (sum % 10 === 0), error: null };
+    return {v:s%10===0,e:null};
 }
 
-function generateLuhnNumber(prefix, length) {
-    var num = prefix;
-    for (var i = num.length; i < length - 1; i++) {
-        num += Math.floor(Math.random() * 10).toString();
+function genLuhn(prefix,len) {
+    var n=prefix;
+    for (var i=n.length;i<len-1;i++) n+=Math.floor(Math.random()*10);
+    var s=0,a=true;
+    for (var i=n.length-1;i>=0;i--) {
+        var d=parseInt(n[i],10);
+        if (a) {d*=2;if(d>9)d-=9;}
+        s+=d;a=!a;
     }
-    var sum = 0, alternate = true;
-    for (var i = num.length - 1; i >= 0; i--) {
-        var digit = parseInt(num[i], 10);
-        if (alternate) { digit *= 2; if (digit > 9) digit -= 9; }
-        sum += digit;
-        alternate = !alternate;
-    }
-    var checkDigit = (10 - (sum % 10)) % 10;
-    return num + checkDigit.toString();
+    return n+((10-(s%10))%10);
 }
 
-function formatCardNumber(num) {
-    return num.replace(/(.{4})/g, '$1 ').trim();
-}
+function fmtCard(n) {return n.replace(/(.{4})/g,'$1 ').trim();}
 
-function detectCardType(num) {
-    var clean = num.replace(/[\s-]/g, '');
-    if (/^4[0-9]{12,18}$/.test(clean)) return 'Visa';
-    if (/^5[1-5][0-9]{14}$/.test(clean)) return 'Mastercard';
-    if (/^3[47][0-9]{13}$/.test(clean)) return 'American Express';
-    if (/^6011[0-9]{12,15}$/.test(clean)) return 'Discover';
-    if (/^35[2-8][0-9]{12,15}$/.test(clean)) return 'JCB';
-    if (/^3(?:0[0-5]|[68][0-9])[0-9]{11,14}$/.test(clean)) return 'Diners Club';
-    if (/^4026|417500|4508|4844|4913|4917[0-9]{12,15}$/.test(clean)) return 'Visa Electron';
+function cardType(n) {
+    var c=n.replace(/[\s-]/g,'');
+    if (/^4[0-9]{12,18}$/.test(c)) return 'Visa';
+    if (/^5[1-5][0-9]{14}$/.test(c)) return 'Mastercard';
+    if (/^3[47][0-9]{13}$/.test(c)) return 'American Express';
+    if (/^6011[0-9]{12,15}$/.test(c)) return 'Discover';
+    if (/^35[2-8][0-9]{12,15}$/.test(c)) return 'JCB';
+    if (/^3(?:0[0-5]|[68])[0-9]{11,14}$/.test(c)) return 'Diners Club';
     return 'Enkoni';
 }
 
-function getBINInfo(bin) {
-    bin = bin.replace(/\D/g, '').slice(0, 6);
-    if (bin.length < 3) return { network: 'BIN twò kout', bank: '—', bin: bin };
-
-    var firstDigit = parseInt(bin[0], 10);
-    var firstTwo = parseInt(bin.slice(0, 2), 10);
-    var network = 'Enkoni', bank = '—';
-
-    if (firstDigit === 4) network = 'Visa';
-    else if (firstTwo >= 51 && firstTwo <= 55) network = 'Mastercard';
-    else if (firstTwo === 34 || firstTwo === 37) network = 'American Express';
-    else if (firstTwo >= 6011 && firstTwo <= 6011) network = 'Discover';
-    else if (firstTwo >= 35 && firstTwo <= 38) network = 'JCB';
-    else if (firstTwo >= 30 && firstTwo <= 39) network = 'Diners Club';
-    else if (firstDigit === 2) network = 'Mastercard (2xxx)';
-
-    var binDB = {
-        '414720': 'BNP Paribas (FR)', '497010': 'Societe Generale (FR)',
-        '400935': 'Credit Agricole (FR)', '497341': 'LCL (FR)',
-        '535011': 'CIC (FR)', '453996': 'HSBC France (FR)',
-        '400241': 'Banque Postale (FR)', '477572': 'Caisse Epargne (FR)',
-        '474542': 'Credit Mutuel (FR)', '414745': 'ING Direct (FR)',
-        '453264': 'Fortis (BE)', '450023': 'KBC (BE)',
-        '479736': 'ING Belgium (BE)', '410466': 'ABN AMRO (NL)',
-        '456480': 'Rabobank (NL)', '424226': 'Barclays (UK)',
-        '446200': 'Lloyds TSB (UK)', '465903': 'Royal Bank Scotland (UK)',
-        '492181': 'Santander (ES)', '454745': 'BBVA (ES)',
-        '400000': 'BIN Test — Edikatif', '411111': 'BIN Test — Edikatif',
-        '555555': 'BIN Test — Edikatif', '371449': 'BIN Test — Edikatif'
+function go(bin,txt) {
+    bin=bin.replace(/\D/g,'').slice(0,6);
+    var B={
+        '414720':'BNP Paribas (FR)','497010':'Societe Generale (FR)','400935':'Credit Agricole (FR)',
+        '497341':'LCL (FR)','535011':'CIC (FR)','453996':'HSBC France (FR)',
+        '400241':'Banque Postale (FR)','477572':'Caisse Epargne (FR)','474542':'Credit Mutuel (FR)',
+        '453264':'Fortis (BE)','450023':'KBC (BE)','479736':'ING Belgium (BE)',
+        '410466':'ABN AMRO (NL)','456480':'Rabobank (NL)','424226':'Barclays (UK)',
+        '446200':'Lloyds TSB (UK)','465903':'Royal Bank Scotland (UK)',
+        '492181':'Santander (ES)','454745':'BBVA (ES)',
+        '400000':'BIN Test — Edikatif','411111':'BIN Test — Edikatif',
+        '555555':'BIN Test — Edikatif'
     };
-    bank = binDB[bin] || ('Enkoni — BIN pa nan baz done lokal');
-
-    return { network: network, bank: bank, bin: bin };
+    var fd=parseInt(bin[0],10), ft=parseInt(bin.slice(0,2),10);
+    var nw='Enkoni';
+    if (fd===4) nw='Visa';
+    else if (ft>=51&&ft<=55) nw='Mastercard';
+    else if (ft===34||ft===37) nw='American Express';
+    else if (ft>=35&&ft<=38) nw='JCB';
+    else if (ft>=30&&ft<=39) nw='Diners Club';
+    else if (fd===2) nw='Mastercard (2xxx)';
+    return {bin:bin,net:nw,bank:B[bin]||'Enkoni'};
 }
 
-function showToast(msg) {
-    var t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    clearTimeout(t._t);
-    t._t = setTimeout(function() { t.classList.remove('show'); }, 2500);
+function tst(msg) {
+    var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+    clearTimeout(t._tm);t._tm=setTimeout(function(){t.classList.remove('show');},2500);
 }
 
-// ============================================================
 // TABS
-// ============================================================
-document.querySelectorAll('.tab').forEach(function(tab) {
-    tab.addEventListener('click', function() {
-        document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
-        this.classList.add('active');
-        document.querySelectorAll('.tab-content').forEach(function(tc) { tc.style.display = 'none'; });
-        document.getElementById('tab-' + this.dataset.tab).style.display = 'block';
-        document.getElementById('outputBox').classList.remove('show');
-        document.getElementById('statsBar').style.display = 'none';
-    });
+document.querySelectorAll('.tab').forEach(function(t){t.addEventListener('click',function(){
+    document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('active');});
+    this.classList.add('active');
+    document.querySelectorAll('.tab-content').forEach(function(x){x.style.display='none';});
+    document.getElementById('tab-'+this.dataset.tab).style.display='block';
+    document.getElementById('outputBox').classList.remove('show');
+    document.getElementById('statsBar').style.display='none';
+});});
+
+// BIN custom
+document.getElementById('binSelect').addEventListener('change',function(){
+    document.getElementById('customBinGroup').style.display=this.value==='CUSTOM'?'block':'none';
 });
 
-// BIN custom toggle
-document.getElementById('binSelect').addEventListener('change', function() {
-    document.getElementById('customBinGroup').style.display = this.value === 'CUSTOM' ? 'block' : 'none';
+// CARD INPUT FORMAT
+document.getElementById('ccInput').addEventListener('input',function(){
+    var v=this.value.replace(/\D/g,'').slice(0,16),f='';
+    for (var i=0;i<v.length;i++){if(i>0&&i%4===0)f+=' ';f+=v[i];}
+    this.value=f;
 });
 
-// Card input auto-format
-document.getElementById('ccInput').addEventListener('input', function() {
-    var val = this.value.replace(/\D/g, '').slice(0, 16);
-    var formatted = '';
-    for (var i = 0; i < val.length; i++) {
-        if (i > 0 && i % 4 === 0) formatted += ' ';
-        formatted += val[i];
-    }
-    this.value = formatted;
-});
-
-// ============================================================
 // VALIDATE
-// ============================================================
-document.getElementById('validateBtn').addEventListener('click', function() {
-    var input = document.getElementById('ccInput').value;
-    var result = luhnCheck(input);
-    var cardType = detectCardType(input);
-
-    var div = document.getElementById('result');
-    div.style.display = 'block';
-    if (result.valid) {
-        div.innerHTML = '<div style="font-size:22px;color:#00ffc8;margin-bottom:8px">✓ VALAB</div><div style="color:#8899aa"><b>' + cardType + '</b> — Algoritm Luhn konfime</div>';
-    } else {
-        div.innerHTML = '<div style="font-size:22px;color:#ff6b6b;margin-bottom:8px">✗ ENVALID</div><div style="color:#8899aa">Rezon: ' + (result.error || 'Echèk Luhn') + '</div>';
-    }
-
-    var out = document.getElementById('outputBox');
-    out.textContent = '# Rezilta Validasyon\n# Nimewo: ' + input + '\n# Rezo: ' + cardType + '\n# Luhn: ' + (result.valid ? 'VALAB' : 'ENVALID') + (result.error ? ' (' + result.error + ')' : '');
-    out.classList.add('show');
+document.getElementById('validateBtn').addEventListener('click',function(){
+    var i=document.getElementById('ccInput').value,r=luhnCheck(i),t=cardType(i);
+    var d=document.getElementById('result');d.style.display='block';
+    d.innerHTML=r.v?'<div style="font-size:22px;color:#00ffc8">✓ VALAB</div><div style="color:#8899aa"><b>'+t+'</b></div>':'<div style="font-size:22px;color:#ff6b6b">✗ ENVALID</div><div style="color:#8899aa">'+r.e+'</div>';
+    var o=document.getElementById('outputBox');
+    o.textContent='# Rezilta Validasyon\n# '+i+' ('+t+')\n# Luhn: '+(r.v?'VALAB':'ENVALID');
+    o.classList.add('show');
 });
 
-// ============================================================
 // GENERATE
-// ============================================================
-document.getElementById('generateBtn').addEventListener('click', function() {
-    var prefix = document.getElementById('binSelect').value;
-    if (prefix === 'CUSTOM') {
-        prefix = document.getElementById('customBinInput').value.replace(/\D/g, '');
-        if (!prefix || prefix.length < 3) {
-            showToast('BIN bezwen omwen 3 chif');
-            return;
-        }
-    }
-
-    var count = parseInt(document.getElementById('countSelect').value);
-    var length = (prefix === '34' || prefix === '37') ? 15 : 16;
-    if (prefix === '300') length = 14;
-
-    var generated = [], seen = {};
-    for (var i = 0; i < count; i++) {
-        var num;
-        do { num = generateLuhnNumber(prefix, length); } while (seen[num]);
-        seen[num] = true;
-        generated.push(num);
-    }
-    lastGenerated = generated;
-
-    var out = document.getElementById('outputBox');
-    var text = '# NIMEWO KAT JENERE (Valab selon Luhn)\n';
-    text += '# Rezo: ' + detectCardType(prefix) + ' | BIN: ' + prefix + ' | Kantite: ' + count + '\n\n';
-    for (var i = 0; i < generated.length; i++) {
-        text += formatCardNumber(generated[i]) + '\t# ' + detectCardType(generated[i]) + '\n';
-    }
-    text += '\n# Tout nimewo sa yo VALAB selon algoritm Luhn.';
-    text += '\n# Yo pa asosye ak okenn kont reyel — se nimewo jenerik pou tes.';
-    out.textContent = text;
-    out.classList.add('show');
-
-    document.getElementById('statsBar').style.display = 'grid';
-    document.getElementById('statTotal').textContent = count;
-    document.getElementById('statValid').textContent = count;
-    document.getElementById('statInvalid').textContent = 0;
-    document.getElementById('downloadGenBtn').style.display = 'block';
+document.getElementById('generateBtn').addEventListener('click',function(){
+    var p=document.getElementById('binSelect').value;
+    if(p==='CUSTOM'){p=document.getElementById('customBinInput').value.replace(/\D/g,'');if(!p||p.length<3){tst('BIN bezwen 3 chif');return;}}
+    var n=parseInt(document.getElementById('countSelect').value);
+    var l=(p==='34'||p==='37')?15:16;if(p==='300')l=14;
+    var g=[],s={};
+    for (var i=0;i<n;i++){var x;do{x=genLuhn(p,l);}while(s[x]);s[x]=1;g.push(x);}
+    lastGenerated=g;
+    var o=document.getElementById('outputBox'),txt='# '+n+' NIMEWO JENERE — '+cardType(p)+' (BIN: '+p+')\n\n';
+    for (var i=0;i<g.length;i++) txt+=fmtCard(g[i])+'\n';
+    txt+='\n# Valab selon Luhn — edikatif selman';
+    o.textContent=txt;o.classList.add('show');
+    document.getElementById('statsBar').style.display='grid';
+    document.getElementById('statTotal').textContent=n;
+    document.getElementById('statValid').textContent=n;
+    document.getElementById('statInvalid').textContent=0;
+    document.getElementById('downloadGenBtn').style.display='block';
 });
 
-// Download generated
-document.getElementById('downloadGenBtn').addEventListener('click', function() {
-    if (!lastGenerated.length) return;
-    var content = '# Credit Card Numbers (Luhn-Valid Only)\n# Educational Tool Only — Not Real Cards\n\n' + lastGenerated.join('\n');
-    var blob = new Blob([content], { type: 'text/plain' });
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'generated_cards.txt';
-    a.click();
-    showToast(lastGenerated.length + ' nimewo telechaje');
+// DOWNLOAD
+document.getElementById('downloadGenBtn').addEventListener('click',function(){
+    if(!lastGenerated.length)return;
+    var b=new Blob(['# Credit Card Numbers (Luhn-Valid)\n'+lastGenerated.join('\n')],{type:'text/plain'});
+    var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='generated_cards.txt';a.click();
+    tst(lastGenerated.length+' telechaje');
 });
 
-// ============================================================
 // BATCH
-// ============================================================
-document.getElementById('batchBtn').addEventListener('click', function() {
-    var lines = document.getElementById('batchInput').value.split('\n').filter(function(l) { return l.trim(); });
-    var valid = 0, invalid = 0;
-    var outText = '# VALIDASYON PA LO — ' + lines.length + ' nimewo\n\n';
-
-    for (var i = 0; i < lines.length; i++) {
-        var trimmed = lines[i].trim();
-        var result = luhnCheck(trimmed);
-        if (result.valid) {
-            valid++;
-            outText += '✓ ' + formatCardNumber(trimmed) + '\t# ' + detectCardType(trimmed) + ' — VALAB\n';
-        } else {
-            invalid++;
-            outText += '✗ ' + formatCardNumber(trimmed) + '\t# ' + (result.error || 'ENVALID') + '\n';
-        }
+document.getElementById('batchBtn').addEventListener('click',function(){
+    var ls=document.getElementById('batchInput').value.split('\n').filter(function(l){return l.trim();});
+    var v=0,iv=0,txt='# BATCH: '+ls.length+' nimewo\n\n';
+    for (var i=0;i<ls.length;i++){
+        var r=luhnCheck(ls[i].trim());
+        txt+=(r.v?'✓ ':'✗ ')+fmtCard(ls[i].trim())+' — '+(r.v?'VALAB':r.e)+'\n';
+        r.v?v++:iv++;
     }
-    outText += '\n# Rezime: ' + valid + ' valab, ' + invalid + ' envalid';
-
-    document.getElementById('outputBox').textContent = outText;
+    txt+='\n# '+v+' valab, '+iv+' envalid';
+    document.getElementById('outputBox').textContent=txt;
     document.getElementById('outputBox').classList.add('show');
-    document.getElementById('statsBar').style.display = 'grid';
-    document.getElementById('statTotal').textContent = lines.length;
-    document.getElementById('statValid').textContent = valid;
-    document.getElementById('statInvalid').textContent = invalid;
+    document.getElementById('statsBar').style.display='grid';
+    document.getElementById('statTotal').textContent=ls.length;
+    document.getElementById('statValid').textContent=v;
+    document.getElementById('statInvalid').textContent=iv;
 });
 
-// ============================================================
 // BIN INFO
-// ============================================================
-document.getElementById('binInfoBtn').addEventListener('click', function() {
-    var bin = document.getElementById('binInfoInput').value.replace(/\D/g, '').slice(0, 6);
-    if (bin.length < 3) { showToast('Antre omwen 3 chif'); return; }
-
-    var info = getBINInfo(bin);
-    var div = document.getElementById('binResult');
-    div.style.display = 'block';
-    div.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:left">' +
-        '<div><small style="color:#8899aa">BIN</small><br><b style="color:#fff;font-family:Courier New">' + info.bin + '</b></div>' +
-        '<div><small style="color:#8899aa">Rezo</small><br><b style="color:#00ffc8">' + info.network + '</b></div>' +
-        '<div style="grid-column:1/-1"><small style="color:#8899aa">Bank / Peys</small><br><b style="color:#ffa500">' + info.bank + '</b></div>' +
-        '</div>';
-
-    document.getElementById('outputBox').textContent = '# Analiz BIN: ' + info.bin + '\n# Rezo: ' + info.network + '\n# Bank: ' + info.bank;
+document.getElementById('binInfoBtn').addEventListener('click',function(){
+    var b=document.getElementById('binInfoInput').value.replace(/\D/g,'').slice(0,6);
+    if(b.length<3){tst('Antre 3+ chif');return;}
+    var i=go(b),d=document.getElementById('binResult');d.style.display='block';
+    d.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:left"><div><small style="color:#8899aa">BIN</small><br><b style="color:#fff;font-family:Courier New">'+i.bin+'</b></div><div><small style="color:#8899aa">Rezo</small><br><b style="color:#00ffc8">'+i.net+'</b></div><div style="grid-column:1/-1"><small style="color:#8899aa">Bank</small><br><b style="color:#ffa500">'+i.bank+'</b></div></div>';
+    document.getElementById('outputBox').textContent='# BIN '+i.bin+'\n# '+i.net+'\n# '+i.bank;
     document.getElementById('outputBox').classList.add('show');
 });
 
-// ENTER key support
-document.getElementById('ccInput').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') document.getElementById('validateBtn').click();
-});
-document.getElementById('binInfoInput').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') document.getElementById('binInfoBtn').click();
-});
+// ENTER key
+document.getElementById('ccInput').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('validateBtn').click();});
+document.getElementById('binInfoInput').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('binInfoBtn').click();});
 </script>
 </body>
 </html>
