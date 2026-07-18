@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ht">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Credit Card Validator & Generator — Pentest Tool</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:linear-gradient(135deg,#0a0e17,#1a0e2e);color:#e0e0e0;font-family:'Segoe UI',sans-serif;min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px}
+.container{background:#111827;border-radius:20px;padding:40px;max-width:800px;width:100%;border:1px solid #1e3a5f;box-shadow:0 0 60px rgba(0,255,200,0.08)}
+h1{font-size:28px;background:linear-gradient(90deg,#ff6b6b,#ffa500);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center;margin-bottom:4px}
+.subtitle{color:#8899aa;text-align:center;margin-bottom:25px;font-size:14px;border-bottom:1px solid #1a2a40;padding-bottom:15px}
+.badge-auth{display:inline-flex;align-items:center;gap:6px;background:#ff6b6b15;color:#ff6b6b;padding:6px 16px;border-radius:20px;font-size:12px;border:1px solid #ff6b6b30;margin-bottom:20px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:20px}
+.card-box{background:#0d1525;border-radius:12px;padding:20px;border:1px solid #1a2a40;position:relative}
+.card-box h3{font-size:14px;color:#aabbcc;margin-bottom:12px}
+.input-group{margin-bottom:12px}
+.input-group label{display:block;font-size:13px;color:#8899aa;margin-bottom:4px}
+.input-group input,textarea,.input-group select{width:100%;padding:10px 14px;background:#070d1a;border:1px solid #1e3a5f;border-radius:8px;color:#fff;font-size:14px;font-family:'Courier New',monospace;outline:none}
+.input-group input:focus,textarea:focus,.input-group select:focus{border-color:#ff6b6b}
+textarea{resize:vertical}
+.btn{padding:12px 20px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.3s;width:100%;text-align:center}
+.btn-danger{background:linear-gradient(135deg,#ff6b6b,#ee5a24);color:#fff}
+.btn-danger:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(255,107,107,0.3)}
+.btn-primary{background:linear-gradient(135deg,#00ffc8,#00b894);color:#0a0e17}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,255,200,0.3)}
+.output-box{background:#0d1525;border-radius:12px;padding:16px;max-height:300px;overflow-y:auto;font-family:'Courier New',monospace;font-size:12px;line-height:1.6;border:1px solid #1a2a40;margin-top:15px;display:none;color:#c0d0e0;white-space:pre-wrap;word-break:break-all}
+.output-box.show{display:block}
+.output-box .valid{color:#00ffc8}
+.output-box .invalid{color:#ff6b6b}
+.output-box .info{color:#556677}
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:15px 0}
+.stat-item{background:#0d1525;border-radius:8px;padding:12px;text-align:center;border:1px solid #1a2a40}
+.stat-item .num{font-size:22px;font-weight:700;color:#00ffc8}
+.stat-item .lbl{font-size:11px;color:#8899aa;margin-top:4px}
+.btn-group{display:flex;gap:10px;margin-top:10px}
+.btn-group .btn{flex:1}
+.tabs{display:flex;gap:2px;margin-bottom:20px;background:#0d1525;border-radius:10px;padding:3px}
+.tab{flex:1;padding:10px;text-align:center;font-size:13px;font-weight:500;cursor:pointer;border-radius:8px;transition:all 0.3s;color:#8899aa;border:none;background:transparent}
+.tab.active{background:#1e3a5f;color:#00ffc8}
+.result-box{margin-top:12px;font-size:14px;text-align:center;display:none;background:#070d1a;border-radius:8px;padding:15px;border:1px solid #1e3a5f}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#00ffc8;color:#0a0e17;padding:12px 24px;border-radius:10px;font-weight:600;font-size:14px;z-index:9999;opacity:0;transition:opacity 0.3s;pointer-events:none}
+.toast.show{opacity:1}
+.footer{text-align:center;margin-top:20px;font-size:11px;color:#445566;border-top:1px solid #1a2a40;padding-top:15px}
+@media(max-width:600px){.container{padding:20px}.grid-2{grid-template-columns:1fr}.stats{grid-template-columns:1fr}.btn-group{flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>💳 Credit Card Validator & Generator</h1>
+    <p class="subtitle">Algoritm Luhn (ISO/IEC 7812-1) — Zouti Edikatif</p>
+    <div style="text-align:center"><span class="badge-auth">📚 EDUKASYONÈL — Algoritm validasyon kat kredi</span></div>
+
+    <div class="tabs">
+        <button class="tab active" data-tab="validate">🔍 Validasyon</button>
+        <button class="tab" data-tab="generate">⚙️ Jenere</button>
+        <button class="tab" data-tab="batch">📦 Batch</button>
+        <button class="tab" data-tab="info">📖 Info BIN</button>
+    </div>
+
+    <!-- TAB 1: VALIDATE -->
+    <div id="tab-validate" class="tab-content">
+        <div class="card-box">
+            <h3>🔍 Verifye yon nimewo kat</h3>
+            <div class="input-group">
+                <label>Nimewo Kat</label>
+                <input type="text" id="ccInput" placeholder="4532 1234 5678 9012" maxlength="19" />
+            </div>
+            <button class="btn btn-danger" id="validateBtn">Verifye</button>
+            <div class="result-box" id="result"></div>
+        </div>
+    </div>
+
+    <!-- TAB 2: GENERATE -->
+    <div id="tab-generate" class="tab-content" style="display:none">
+        <div class="card-box">
+            <h3>⚙️ Jenere nimewo kat valab (Luhn)</h3>
+            <div class="grid-2">
+                <div class="input-group">
+                    <label>Rezo (BIN)</label>
+                    <select id="binSelect">
+                        <option value="4">Visa (4...)</option>
+                        <option value="51">Mastercard (51-55...)</option>
+                        <option value="34">American Express (34, 37...)</option>
+                        <option value="6011">Discover (6011...)</option>
+                        <option value="3528">JCB (3528-3589...)</option>
+                        <option value="300">Diners Club (300-305...)</option>
+                        <option value="CUSTOM">🛠️ BIN Pèsonalize</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Kantite</label>
+                    <select id="countSelect">
+                        <option value="1">1</option>
+                        <option value="5">5</option>
+                        <option value="10" selected>10</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                        <option value="500">500</option>
+                        <option value="1000">1000</option>
+                    </select>
+                </div>
+            </div>
+            <div class="input-group" id="customBinGroup" style="display:none">
+                <label>BIN pèsonalize (3-6 chif)</label>
+                <input type="text" id="customBinInput" placeholder="Ex: 4912" maxlength="6" />
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-primary" id="generateBtn">Jenere</button>
+                <button class="btn btn-primary" id="downloadGenBtn" style="display:none">⬇️ Telechaje .txt</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 3: BATCH -->
+    <div id="tab-batch" class="tab-content" style="display:none">
+        <div class="card-box">
+            <h3>📦 Validasyon pa lo</h3>
+            <div class="input-group">
+                <label>Mete nimewo kat yo (youn pa liy)</label>
+                <textarea id="batchInput" rows="6" placeholder="4532 1234 5678 9012&#10;5555 1234 5678 9012&#10;3714 4963 5398 431"></textarea>
+            </div>
+            <button class="btn btn-primary" id="batchBtn">Verifye tout</button>
+        </div>
+    </div>
+
+    <!-- TAB 4: BIN INFO -->
+    <div id="tab-bin" class="tab-content" style="display:none">
+        <div class="card-box">
+            <h3>📖 Idantifye yon BIN</h3>
+            <div class="input-group">
+                <label>Premye 6 chif (BIN)</label>
+                <input type="text" id="binInfoInput" placeholder="414720" maxlength="6" />
+            </div>
+            <button class="btn btn-primary" id="binInfoBtn">Analize</button>
+            <div class="result-box" id="binResult"></div>
+        </div>
+    </div>
+
+    <div class="stats" id="statsBar" style="display:none">
+        <div class="stat-item"><div class="num" id="statTotal">0</div><div class="lbl">Total</div></div>
+        <div class="stat-item"><div class="num" id="statValid">0</div><div class="lbl">Valab</div></div>
+        <div class="stat-item"><div class="num" id="statInvalid">0</div><div class="lbl">Envalid</div></div>
+    </div>
+
+    <div class="output-box" id="outputBox">
+        <span class="info"># Chwazi yon fonksyon anwo a</span>
+    </div>
+
+    <div class="footer">
+        <span style="color:#00ffc8">📚</span> Zouti edikatif — demontre algoritm Luhn (ISO/IEC 7812-1).
+        Nimewo jenere yo pa asosye ak okenn kont reyèl.
+        <br>Dènye modif: 2026-07-18
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// ALGORITM LUHN (ISO/IEC 7812-1)
+// ============================================================
+
+let lastGenerated = [];
+
+function luhnCheck(cardNumber) {
+    var num = cardNumber.replace(/[\s-]/g, '');
+    if (!/^\d+$/.test(num)) return { valid: false, error: 'Karaktè ki pa chif yo' };
+    if (num.length < 13 || num.length > 19) return { valid: false, error: 'Longè envalid (13-19 chif)' };
+
+    var sum = 0, alternate = false;
+    for (var i = num.length - 1; i >= 0; i--) {
+        var digit = parseInt(num[i], 10);
+        if (alternate) { digit *= 2; if (digit > 9) digit -= 9; }
+        sum += digit;
+        alternate = !alternate;
+    }
+    return { valid: (sum % 10 === 0), error: null };
+}
+
+function generateLuhnNumber(prefix, length) {
+    var num = prefix;
+    for (var i = num.length; i < length - 1; i++) {
+        num += Math.floor(Math.random() * 10).toString();
+    }
+    var sum = 0, alternate = true;
+    for (var i = num.length - 1; i >= 0; i--) {
+        var digit = parseInt(num[i], 10);
+        if (alternate) { digit *= 2; if (digit > 9) digit -= 9; }
+        sum += digit;
+        alternate = !alternate;
+    }
+    var checkDigit = (10 - (sum % 10)) % 10;
+    return num + checkDigit.toString();
+}
+
+function formatCardNumber(num) {
+    return num.replace(/(.{4})/g, '$1 ').trim();
+}
+
+function detectCardType(num) {
+    var clean = num.replace(/[\s-]/g, '');
+    if (/^4[0-9]{12,18}$/.test(clean)) return 'Visa';
+    if (/^5[1-5][0-9]{14}$/.test(clean)) return 'Mastercard';
+    if (/^3[47][0-9]{13}$/.test(clean)) return 'American Express';
+    if (/^6011[0-9]{12,15}$/.test(clean)) return 'Discover';
+    if (/^35[2-8][0-9]{12,15}$/.test(clean)) return 'JCB';
+    if (/^3(?:0[0-5]|[68][0-9])[0-9]{11,14}$/.test(clean)) return 'Diners Club';
+    if (/^4026|417500|4508|4844|4913|4917[0-9]{12,15}$/.test(clean)) return 'Visa Electron';
+    return 'Enkoni';
+}
+
+function getBINInfo(bin) {
+    bin = bin.replace(/\D/g, '').slice(0, 6);
+    if (bin.length < 3) return { network: 'BIN twò kout', bank: '—', bin: bin };
+
+    var firstDigit = parseInt(bin[0], 10);
+    var firstTwo = parseInt(bin.slice(0, 2), 10);
+    var network = 'Enkoni', bank = '—';
+
+    if (firstDigit === 4) network = 'Visa';
+    else if (firstTwo >= 51 && firstTwo <= 55) network = 'Mastercard';
+    else if (firstTwo === 34 || firstTwo === 37) network = 'American Express';
+    else if (firstTwo >= 6011 && firstTwo <= 6011) network = 'Discover';
+    else if (firstTwo >= 35 && firstTwo <= 38) network = 'JCB';
+    else if (firstTwo >= 30 && firstTwo <= 39) network = 'Diners Club';
+    else if (firstDigit === 2) network = 'Mastercard (2xxx)';
+
+    var binDB = {
+        '414720': 'BNP Paribas (FR)', '497010': 'Societe Generale (FR)',
+        '400935': 'Credit Agricole (FR)', '497341': 'LCL (FR)',
+        '535011': 'CIC (FR)', '453996': 'HSBC France (FR)',
+        '400241': 'Banque Postale (FR)', '477572': 'Caisse Epargne (FR)',
+        '474542': 'Credit Mutuel (FR)', '414745': 'ING Direct (FR)',
+        '453264': 'Fortis (BE)', '450023': 'KBC (BE)',
+        '479736': 'ING Belgium (BE)', '410466': 'ABN AMRO (NL)',
+        '456480': 'Rabobank (NL)', '424226': 'Barclays (UK)',
+        '446200': 'Lloyds TSB (UK)', '465903': 'Royal Bank Scotland (UK)',
+        '492181': 'Santander (ES)', '454745': 'BBVA (ES)',
+        '400000': 'BIN Test — Edikatif', '411111': 'BIN Test — Edikatif',
+        '555555': 'BIN Test — Edikatif', '371449': 'BIN Test — Edikatif'
+    };
+    bank = binDB[bin] || ('Enkoni — BIN pa nan baz done lokal');
+
+    return { network: network, bank: bank, bin: bin };
+}
+
+function showToast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._t);
+    t._t = setTimeout(function() { t.classList.remove('show'); }, 2500);
+}
+
+// ============================================================
+// TABS
+// ============================================================
+document.querySelectorAll('.tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+        document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+        this.classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(function(tc) { tc.style.display = 'none'; });
+        document.getElementById('tab-' + this.dataset.tab).style.display = 'block';
+        document.getElementById('outputBox').classList.remove('show');
+        document.getElementById('statsBar').style.display = 'none';
+    });
+});
+
+// BIN custom toggle
+document.getElementById('binSelect').addEventListener('change', function() {
+    document.getElementById('customBinGroup').style.display = this.value === 'CUSTOM' ? 'block' : 'none';
+});
+
+// Card input auto-format
+document.getElementById('ccInput').addEventListener('input', function() {
+    var val = this.value.replace(/\D/g, '').slice(0, 16);
+    var formatted = '';
+    for (var i = 0; i < val.length; i++) {
+        if (i > 0 && i % 4 === 0) formatted += ' ';
+        formatted += val[i];
+    }
+    this.value = formatted;
+});
+
+// ============================================================
+// VALIDATE
+// ============================================================
+document.getElementById('validateBtn').addEventListener('click', function() {
+    var input = document.getElementById('ccInput').value;
+    var result = luhnCheck(input);
+    var cardType = detectCardType(input);
+
+    var div = document.getElementById('result');
+    div.style.display = 'block';
+    if (result.valid) {
+        div.innerHTML = '<div style="font-size:22px;color:#00ffc8;margin-bottom:8px">✓ VALAB</div><div style="color:#8899aa"><b>' + cardType + '</b> — Algoritm Luhn konfime</div>';
+    } else {
+        div.innerHTML = '<div style="font-size:22px;color:#ff6b6b;margin-bottom:8px">✗ ENVALID</div><div style="color:#8899aa">Rezon: ' + (result.error || 'Echèk Luhn') + '</div>';
+    }
+
+    var out = document.getElementById('outputBox');
+    out.textContent = '# Rezilta Validasyon\n# Nimewo: ' + input + '\n# Rezo: ' + cardType + '\n# Luhn: ' + (result.valid ? 'VALAB' : 'ENVALID') + (result.error ? ' (' + result.error + ')' : '');
+    out.classList.add('show');
+});
+
+// ============================================================
+// GENERATE
+// ============================================================
+document.getElementById('generateBtn').addEventListener('click', function() {
+    var prefix = document.getElementById('binSelect').value;
+    if (prefix === 'CUSTOM') {
+        prefix = document.getElementById('customBinInput').value.replace(/\D/g, '');
+        if (!prefix || prefix.length < 3) {
+            showToast('BIN bezwen omwen 3 chif');
+            return;
+        }
+    }
+
+    var count = parseInt(document.getElementById('countSelect').value);
+    var length = (prefix === '34' || prefix === '37') ? 15 : 16;
+    if (prefix === '300') length = 14;
+
+    var generated = [], seen = {};
+    for (var i = 0; i < count; i++) {
+        var num;
+        do { num = generateLuhnNumber(prefix, length); } while (seen[num]);
+        seen[num] = true;
+        generated.push(num);
+    }
+    lastGenerated = generated;
+
+    var out = document.getElementById('outputBox');
+    var text = '# NIMEWO KAT JENERE (Valab selon Luhn)\n';
+    text += '# Rezo: ' + detectCardType(prefix) + ' | BIN: ' + prefix + ' | Kantite: ' + count + '\n\n';
+    for (var i = 0; i < generated.length; i++) {
+        text += formatCardNumber(generated[i]) + '\t# ' + detectCardType(generated[i]) + '\n';
+    }
+    text += '\n# Tout nimewo sa yo VALAB selon algoritm Luhn.';
+    text += '\n# Yo pa asosye ak okenn kont reyel — se nimewo jenerik pou tes.';
+    out.textContent = text;
+    out.classList.add('show');
+
+    document.getElementById('statsBar').style.display = 'grid';
+    document.getElementById('statTotal').textContent = count;
+    document.getElementById('statValid').textContent = count;
+    document.getElementById('statInvalid').textContent = 0;
+    document.getElementById('downloadGenBtn').style.display = 'block';
+});
+
+// Download generated
+document.getElementById('downloadGenBtn').addEventListener('click', function() {
+    if (!lastGenerated.length) return;
+    var content = '# Credit Card Numbers (Luhn-Valid Only)\n# Educational Tool Only — Not Real Cards\n\n' + lastGenerated.join('\n');
+    var blob = new Blob([content], { type: 'text/plain' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'generated_cards.txt';
+    a.click();
+    showToast(lastGenerated.length + ' nimewo telechaje');
+});
+
+// ============================================================
+// BATCH
+// ============================================================
+document.getElementById('batchBtn').addEventListener('click', function() {
+    var lines = document.getElementById('batchInput').value.split('\n').filter(function(l) { return l.trim(); });
+    var valid = 0, invalid = 0;
+    var outText = '# VALIDASYON PA LO — ' + lines.length + ' nimewo\n\n';
+
+    for (var i = 0; i < lines.length; i++) {
+        var trimmed = lines[i].trim();
+        var result = luhnCheck(trimmed);
+        if (result.valid) {
+            valid++;
+            outText += '✓ ' + formatCardNumber(trimmed) + '\t# ' + detectCardType(trimmed) + ' — VALAB\n';
+        } else {
+            invalid++;
+            outText += '✗ ' + formatCardNumber(trimmed) + '\t# ' + (result.error || 'ENVALID') + '\n';
+        }
+    }
+    outText += '\n# Rezime: ' + valid + ' valab, ' + invalid + ' envalid';
+
+    document.getElementById('outputBox').textContent = outText;
+    document.getElementById('outputBox').classList.add('show');
+    document.getElementById('statsBar').style.display = 'grid';
+    document.getElementById('statTotal').textContent = lines.length;
+    document.getElementById('statValid').textContent = valid;
+    document.getElementById('statInvalid').textContent = invalid;
+});
+
+// ============================================================
+// BIN INFO
+// ============================================================
+document.getElementById('binInfoBtn').addEventListener('click', function() {
+    var bin = document.getElementById('binInfoInput').value.replace(/\D/g, '').slice(0, 6);
+    if (bin.length < 3) { showToast('Antre omwen 3 chif'); return; }
+
+    var info = getBINInfo(bin);
+    var div = document.getElementById('binResult');
+    div.style.display = 'block';
+    div.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:left">' +
+        '<div><small style="color:#8899aa">BIN</small><br><b style="color:#fff;font-family:Courier New">' + info.bin + '</b></div>' +
+        '<div><small style="color:#8899aa">Rezo</small><br><b style="color:#00ffc8">' + info.network + '</b></div>' +
+        '<div style="grid-column:1/-1"><small style="color:#8899aa">Bank / Peys</small><br><b style="color:#ffa500">' + info.bank + '</b></div>' +
+        '</div>';
+
+    document.getElementById('outputBox').textContent = '# Analiz BIN: ' + info.bin + '\n# Rezo: ' + info.network + '\n# Bank: ' + info.bank;
+    document.getElementById('outputBox').classList.add('show');
+});
+
+// ENTER key support
+document.getElementById('ccInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') document.getElementById('validateBtn').click();
+});
+document.getElementById('binInfoInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') document.getElementById('binInfoBtn').click();
+});
+</script>
+</body>
+</html>
